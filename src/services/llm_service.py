@@ -1,6 +1,5 @@
 import gc
 import os
-import math
 import traceback
 
 import torch
@@ -8,8 +7,7 @@ from FlagEmbedding import FlagReranker, BGEM3FlagModel
 from rwkv.model import RWKV as OriginRWKV
 from rwkv.utils import PIPELINE, PIPELINE_ARGS
 
-from src.services import AbstractServiceWorker
-#from rwkv_lm_ext.src.model_run import generate_beamsearch
+from src.services import AbstractServiceWorker, PipeLine
 from tokenizer.rwkv_tokenizer import TRIE_TOKENIZER
 from configuration import config as project_config
 
@@ -153,7 +151,11 @@ class LLMService:
                           alpha_decay=0.996,
                           template_prompt=None,
                           base_model_path=None,
+                          stream_output=False
                          ):
+        """
+        :stream_output: 是否流式输出
+        """
         if base_model_path:
             self.reload_base_model(base_model_path)
         if not state_file:
@@ -171,12 +173,19 @@ class LLMService:
         else:
             ctx = template_prompt
         print('prompt=',ctx)
-        try:
-            pipeline = PIPELINE(self.model, "rwkv_vocab_v20230424")
-            output = pipeline.generate(ctx, token_count=450, args=gen_args, state=states_value)
-            print(output)
-        except:
-            raise ValueError(traceback.format_exc())
+        if stream_output:
+            try:
+                pipeline = PipeLine(self.model, "rwkv_vocab_v20230424")
+                # return generator
+                output = pipeline.generate(ctx, token_count=450, args=gen_args, state=states_value)
+            except:
+                raise ValueError(traceback.format_exc())
+        else:
+            try:
+                pipeline = PIPELINE(self.model, "rwkv_vocab_v20230424")
+                output = pipeline.generate(ctx, token_count=450, args=gen_args, state=states_value)
+            except:
+                raise ValueError(traceback.format_exc())
         return output
 
 
@@ -202,13 +211,6 @@ class ServiceWorker(AbstractServiceWorker):
             rerank_path = cmd.get("rerank_path")
             value = self.llm_service.cross_encode_texts(texts_0,texts_1, rerank_path)
             return value
-        # elif cmd['cmd'] == 'BEAM_GENERATE':
-        #     instruction = cmd.get("instruction")
-        #     input_text = cmd.get("input_text")
-        #     token_count = cmd.get('token_count', 128)
-        #     num_beams = cmd.get('num_beams', 5)
-        #     value=self.llm_service.beam_generate(instruction, input_text, token_count, num_beams)
-        #     return value
         elif cmd['cmd'] == 'SAMPLING_GENERATE':
             instruction = cmd.get("instruction")
             input_text = cmd["input_text"]
@@ -217,8 +219,10 @@ class ServiceWorker(AbstractServiceWorker):
             state_file = cmd.get('state_file')
             template_prompt = cmd.get('template_prompt')
             base_model_path = cmd.get('base_model_path')
+            stream_output = cmd.get('stream_output', False)
             value = self.llm_service.sampling_generate(instruction, input_text, state_file,temperature,top_p,
-                                                       template_prompt=template_prompt, base_model_path=base_model_path)
+                                                       template_prompt=template_prompt, base_model_path=base_model_path,
+                                                       stream_output=stream_output)
             return value       
         return ServiceWorker.UNSUPPORTED_COMMAND
 

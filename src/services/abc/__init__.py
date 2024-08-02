@@ -31,13 +31,20 @@ class AbstractServiceWorker(ABC):
         while True:
             message = self.socket.recv()
             cmd = msgpack.unpackb(message, raw=False)
+            stream_output = cmd.get('stream_output')
             try:
                 resp = self.process(cmd)
                 if resp == AbstractServiceWorker.UNSUPPORTED_COMMAND:
                     resp = {"code": 400, "error": "Unsupported command"}
+                    self.socket.send(msgpack.packb(resp, use_bin_type=True))
+                elif stream_output is True:
+                    for cha in resp:
+                        print(cha,'       oooooooooooooooo')
+                        self.socket.send(cha.encode('utf-8'), zmq.SNDMORE)
+                    self.socket.send(b'\n\n\n\n',0)
                 else:
                     resp = {"code": 200, "value": resp}
-                self.socket.send(msgpack.packb(resp, use_bin_type=True))
+                    self.socket.send(msgpack.packb(resp, use_bin_type=True))
             except Exception as e:
                 resp = {"code": 400, "error": str(e)}
                 self.socket.send(msgpack.packb(resp, use_bin_type=True))
@@ -91,3 +98,5 @@ class PipeLine(PIPELINE):
                     callback(tmp)
                 yield  tmp
                 out_last = i + 1
+
+       # yield '\n\n\n\n' # 结束符

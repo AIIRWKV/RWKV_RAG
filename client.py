@@ -4,6 +4,7 @@ import re
 
 import streamlit as st
 import pandas as pd
+from traits.trait_types import self
 
 from src.clients.index_client import IndexClient
 from src.clients.llm_client import LLMClient
@@ -14,6 +15,8 @@ from src.clients.tuning_client import TuningClient
 from src.services import FileStatusManager
 from configuration import config as project_config
 
+
+RWKV_BOT_STREAM_OUTPUT = True # rwkv bot 是否使用流式输出
 
 current_path = os.path.dirname(os.path.abspath(__file__)) # 工程当前目录
 parent_dir = os.path.dirname(current_path)  # 上一级
@@ -302,14 +305,26 @@ def rag_chain(index_client: IndexClient, llm_client: LLMClient):
         with st.chat_message("user"):
             st.markdown(instruction_input)
         st.session_state.chat_messages.append({"role": "User", "content": instruction_input})
-        sampling_results = llm_client.sampling_generate(instruction_input, st.session_state.best_match,
+        if RWKV_BOT_STREAM_OUTPUT:
+            sampling_results_generator = llm_client.sampling_generate(instruction_input, st.session_state.best_match,
+                                                            '',
+                                                            token_count=50,
+                                                            stream_output=True)
+            with st.chat_message("RWKV"):
+                container = st.empty()
+                sampling_results = ''
+                for res in sampling_results_generator:
+                    sampling_results += res
+                    container.markdown(sampling_results + '╹')
+                container.markdown(sampling_results)
+        else:
+            sampling_results = llm_client.sampling_generate(instruction_input, st.session_state.best_match,
                                                         '',
                                                         token_count=50).get('value')
-
+            with st.chat_message("RWKV"):
+                st.write(sampling_results)
 
         st.session_state.chat_messages.append({"role": "RWKV", "content": sampling_results})
-        with st.chat_message("RWKV"):
-            st.write(sampling_results)
         st.session_state.best_match = f"{st.session_state.best_match},{sampling_results}"
 
 

@@ -36,7 +36,7 @@ class LLMClient:
         return resp
 
     def sampling_generate(self, instruction, input_text, state_file, token_count=128, temperature=1.0,
-                          top_p=0,template_prompt=None, base_model_path=None):
+                          top_p=0,template_prompt=None, base_model_path=None, stream_output=False):
         cmd = {
             "cmd": "SAMPLING_GENERATE",
             "instruction": instruction,
@@ -46,10 +46,21 @@ class LLMClient:
             "state_file": state_file,
             "temperature": temperature,
             "template_prompt": template_prompt,
-            "base_model_path": base_model_path
-
+            "base_model_path": base_model_path,
+            "stream_output": stream_output
         }
         self.socket.send(msgpack.packb(cmd, use_bin_type=True))
-        msg = self.socket.recv()
-        resp = msgpack.unpackb(msg, raw=False)
-        return resp
+        if stream_output:
+            more_frames = True
+            while more_frames:
+                msg = self.socket.recv()
+                resp = msg.decode("utf-8", errors="ignore")
+                more_frames = self.socket.getsockopt(zmq.RCVMORE)
+                if resp == '\n\n\n\n':
+                    break
+                print(resp, '     pppp')
+                yield resp
+        else:
+            msg = self.socket.recv()
+            resp = msgpack.unpackb(msg, raw=False)
+            return resp

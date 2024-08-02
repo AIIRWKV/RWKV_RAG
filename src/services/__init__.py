@@ -1,4 +1,4 @@
-from .abc import AbstractServiceWorker
+from .abc import AbstractServiceWorker, PipeLine
 from .index_service import ServiceWorker as IndexServiceWorker
 from .llm_service import ServiceWorker as LLMServiceWorker, LLMService
 from .tuning_service import ServiceWorker as TuningServiceWorker
@@ -10,6 +10,6 @@ public_service_workers = {
     'tuning_service': 'TuningServiceWorker',
 }
 
-__all__ = ['AbstractServiceWorker', 'LLMService', 'FileStatusManager'] + list(public_service_workers.values())
+__all__ = ['AbstractServiceWorker', 'LLMService', 'FileStatusManager', 'PipeLine'] + list(public_service_workers.values())
 
 
