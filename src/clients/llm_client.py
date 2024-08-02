@@ -2,9 +2,9 @@ import msgpack
 import zmq
 
 class LLMClient:
-    def __init__(self,url) -> None:
+    def __init__(self,url, socket_type=zmq.REQ) -> None:
         self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REQ)
+        self.socket = self.context.socket(socket_type)
         self.socket.connect(url)
         self.socket.setsockopt(zmq.RCVTIMEO, 60000)
 

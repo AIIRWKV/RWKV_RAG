@@ -2,9 +2,9 @@ import os
 import asyncio
 import re
 
+import zmq
 import streamlit as st
 import pandas as pd
-from traits.trait_types import self
 
 from src.clients.index_client import IndexClient
 from src.clients.llm_client import LLMClient
@@ -553,7 +553,12 @@ def main():
     else:
         if tabs_title_enabled[3]:
             st.title("知识问答")
-            llm_client = LLMClient("tcp://localhost:7781")
+            _socket_type = project_config.config.get('llm', {}).get('front_end', {}).get('socket_type', '')
+            if _socket_type == 'pull':
+                socket_type = zmq.PULL
+            else:
+                socket_type = zmq.REQ
+            llm_client = LLMClient("tcp://localhost:7781", socket_type)
             rag_chain(index_client, llm_client)
         else:
             st.write("配置文件里没开启该功能")

@@ -10,11 +10,11 @@ from rwkv.utils import PIPELINE, PIPELINE_ARGS
 class AbstractServiceWorker(ABC):
     UNSUPPORTED_COMMAND = 'Unsupported command'
 
-    def __init__(self, backend_url, config):
+    def __init__(self, backend_url, config, socket_type=zmq.REP):
         self.init_with_config(config)
         self.backend_url = backend_url
         self.context = zmq.Context()
-        self.socket = self.context.socket(zmq.REP)
+        self.socket = self.context.socket(socket_type)
         self.socket.connect(backend_url)
         print(
             f"\033[93m Service worker {self.__class__.__name__} connected to {backend_url} at process {os.getpid()}\033[0m")

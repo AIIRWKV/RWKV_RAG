@@ -5,10 +5,12 @@ llm:
     host: localhost
     protocol: tcp
     port: 7781
+    socket_type: pull
   back_end:
     host: localhost
     protocol: tcp
     port: 7782
+    socket_type: push
   num_workers: 1
   spawn_method: spawn
   base_model_file: /home/rwkv/Peter/model/base/RWKV-x060-World-7B-v2.1-20240507-ctx4096.pth

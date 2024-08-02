@@ -4,9 +4,11 @@ from datetime import datetime
 from multiprocessing import Lock
 
 import chromadb
+import zmq
 
 from src.services import AbstractServiceWorker
 from src.clients import LLMClient
+from configuration import config as project_config
 
 
 CHROMA_DB_COLLECTION_NAME = 'initial'
@@ -17,9 +19,14 @@ class ServiceWorker(AbstractServiceWorker):
     lock = Lock()
 
     def init_with_config(self, config):
-        
+        _socket_type = project_config.config.get('llm', {}).get('front_end', {}).get('socket_type', '')
+        if _socket_type == 'pull':
+            socket_type = zmq.PULL
+        else:
+            socket_type = zmq.REQ
+
         llm_front_end_url = config.get("llm_front_end_url", '')
-        self.llm_client = LLMClient(llm_front_end_url)
+        self.llm_client = LLMClient(llm_front_end_url, socket_type=socket_type)
         chroma_port = config["chroma_port"]
         chroma_host = config["chroma_host"]
 

@@ -190,6 +190,7 @@ class LLMService:
 
 
 class ServiceWorker(AbstractServiceWorker):
+
     def init_with_config(self, config):
         base_model_file = config.get("base_model_file") # 默认使用配置文件的模型
         try:

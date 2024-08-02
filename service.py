@@ -18,8 +18,8 @@ def start_proxy(frontend_url, backend_url):
     zmq.proxy(frontend, backend)
 
 
-def start_process(service_cls: AbstractServiceWorker, backend_url: str,config: dict):
-    service_instance = service_cls(backend_url,config)
+def start_process(service_cls: AbstractServiceWorker, backend_url: str,config: dict, socket_type=zmq.REP):
+    service_instance = service_cls(backend_url,config, socket_type=socket_type)
     print(f"\033[93mStarting service worker {service_cls} with backend url {backend_url} at process {os.getpid()}\033[0m")
     service_instance.run()
 
@@ -31,10 +31,16 @@ def start_service(service_cls :AbstractServiceWorker, config: dict):
     print(f"\033[91mStarting service {name} with backend url {backend_url} and frontend url {frontend_url}\033[0m")
     num_workers = config.get("num_workers",1) or 1
     spawn_method = config.get("spawn_method","fork")
+    _socket_type = config["back_end"].get("socket_type")
+    if _socket_type == 'push':
+        socket_type = zmq.PUSH
+    else:
+        socket_type = zmq.REP
+
     multiprocessing.set_start_method(spawn_method, force=True)
     print(f'\033[91mStarting {num_workers} workers\033[0m')
     for i in range(num_workers):
-       multiprocessing.Process(target=start_process, args=(service_cls,backend_url,config)).start()
+       multiprocessing.Process(target=start_process, args=(service_cls,backend_url,config, socket_type)).start()
     print(f'\033[91mstart proxy {frontend_url} {backend_url}\033[0m')
     multiprocessing.Process(target=start_proxy, args=(frontend_url,backend_url)).start()
     print(f"\033[91mService {name} started\033[0m")
